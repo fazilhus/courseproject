@@ -11,7 +11,8 @@ import time as t
 import cchardet
 import hashlib
 
-file_path = ''   
+file_path = ''
+ext = ['.txt','.rtf'] 
 
 # Функция отвечающая за непосредственно архивирование выбранного файла
 def encode_lz78(s):
@@ -73,12 +74,12 @@ def open_file():
     global file_path
 
     file_path = tk.filedialog.askopenfilename(initialdir='/', title='Выберите файл',
-                                           filetypes=(('Text files', '*.txt'), ('LZ78 Archives', '*.lz78'),
+                                           filetypes=(('Text files', ('*.txt','*.rtf')), ('LZ78 Archives', '*.lz78'),
                                                       ('All files', '*.*')))
     path_result = tk.StringVar(root)
     file_path_label['textvariable'] = path_result
     path_result.set(file_path)
-    if os.path.splitext(file_path)[1] == '.txt':
+    if os.path.splitext(file_path)[1] in ext:
         archive['state'] = 'normal'
         dearchive['state'] = 'disabled'
         pwd_checkbutton['state'] = 'normal'
@@ -107,10 +108,12 @@ def encode():
     ans1 = encode_lz78(s)
     f.close()
 
+    file_ext = file_path[file_path.rfind('.'):-1]
     file_path = new_file_path[:-5] + '.lz78'
     with open(file_path, 'w', encoding=encoding) as f:
         if pwd_state:
             f.write('Password: ' + str(password) + '\n')
+        f.write('File: ' + file_ext + '\n')
         for i in range(len(ans1)):
             s = '(' + str(ans1[i][0]) + ',' + ans1[i][1] + ')'
             f.write(s)
@@ -136,6 +139,7 @@ def decode():
     with open(file_path, 'r', encoding=encoding) as f:
         s = f.readline()
         if 'Password:' in s:
+            zip_ext = f.readline().split(': ')[1]
             password = tk.simpledialog.askstring(title='Пароль', prompt='Введите пароль', show='*')
             print(s[10:])
             if password == s[10:-1]:
@@ -143,9 +147,11 @@ def decode():
             else:
                 tk.messagebox.showerror(title='Упс', message='Неверный пароль.')
         else:
+            zip_ext = s.split(': ')[1]
             ans2 = decode_lz78(f.read())
-
-    file_path = new_file_path[:-4] + '.txt'
+     
+    print(zip_ext)
+    file_path = new_file_path[:-4] + zip_ext[:-1]
     with open(file_path, 'w', encoding=encoding) as f:
         f.write(ans2)
     
