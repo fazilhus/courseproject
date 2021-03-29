@@ -81,9 +81,12 @@ def open_file():
     if os.path.splitext(file_path)[1] == '.txt':
         archive['state'] = 'normal'
         dearchive['state'] = 'disabled'
+        pwd_checkbutton['state'] = 'normal'
+        is_pwd.set(False)
     elif os.path.splitext(file_path)[1] == '.lz78':
         archive['state'] = 'disabled'
         dearchive['state'] = 'normal'
+        pwd_checkbutton['state'] = 'disabled'
 
 # Функция, вызываемя при срабатывании кнопки "Архивировать". Вызывает функцию encode_lz78, создает новый файл с прежним названием с новым расширением.
 def encode():
@@ -91,9 +94,10 @@ def encode():
 
     new_file_path = tk.filedialog.asksaveasfilename(initialdir='/', title='Назовите файл')
 
-    is_pwd = tk.messagebox.askquestion(title='Пароль', message='Установить пароль?')
-    '''if is_pwd == 'yes':
-        pwd = tk.Entry(root,show='*').get()'''
+    pwd_state = is_pwd.get()
+    print(pwd_state)
+    if pwd_state:
+        password = tk.simpledialog.askstring(title='Пароль', prompt='Введите пароль', show='*')
 
     with open(file_path, 'rb') as f:
         encoding = cchardet.detect(f.read())['encoding']
@@ -104,10 +108,13 @@ def encode():
     f.close()
 
     file_path = new_file_path[:-5] + '.lz78'
-    f = open(file_path, 'w', encoding=encoding)
-    for i in range(len(ans1)):
-        f.write('(' + str(ans1[i][0]) + ',' + ans1[i][1] + ')')
-    f.close()
+    with open(file_path, 'w', encoding=encoding) as f:
+        if pwd_state:
+            f.write('Password: ' + str(password) + '\n')
+        for i in range(len(ans1)):
+            s = '(' + str(ans1[i][0]) + ',' + ans1[i][1] + ')'
+            f.write(s)
+
 
     path_result = tk.StringVar(root)
     file_path_label['textvariable'] = path_result
@@ -120,19 +127,28 @@ def encode():
 def decode():
     global file_path
     
+    
     new_file_path = tk.filedialog.asksaveasfilename(initialdir='/', title='Назовите файл')
 
     with open(file_path, 'rb') as f:
         encoding = cchardet.detect(f.read())['encoding']
 
-    f = open(file_path, 'r', encoding=encoding)
-    ans2 = decode_lz78(f.read())
-    f.close()
+    with open(file_path, 'r', encoding=encoding) as f:
+        s = f.readline()
+        if 'Password:' in s:
+            password = tk.simpledialog.askstring(title='Пароль', prompt='Введите пароль', show='*')
+            print(s[10:])
+            if password == s[10:-1]:
+                ans2 = decode_lz78(f.read()) 
+            else:
+                tk.messagebox.showerror(title='Упс', message='Неверный пароль.')
+        else:
+            ans2 = decode_lz78(f.read())
 
     file_path = new_file_path[:-4] + '.txt'
-    f = open(file_path, 'w', encoding=encoding)
-    f.write(ans2)
-    f.close()
+    with open(file_path, 'w', encoding=encoding) as f:
+        f.write(ans2)
+    
 
     path_result = tk.StringVar(root)
     file_path_label['textvariable'] = path_result
@@ -163,6 +179,8 @@ open_file = tk.Button(content, height=1, width=12, text='Выбрать файл
                      activebackground='grey', justify='center', default='active', command=open_file)
 archive = tk.Button(content, height=1, width=12, text='Архивировать', padx=10, pady=5, fg='black', bg='white',  # Кнопка "Архивировать"
                     activebackground='grey', justify='center', state='disabled', command=encode)
+is_pwd = tk.BooleanVar()
+pwd_checkbutton = tk.Checkbutton(content, text='Пароль', state='disabled', variable=is_pwd, onvalue=1, offvalue=0)
 dearchive = tk.Button(content, height=1, width=12, text='Разархивировать', padx=10, pady=5, fg='black', bg='white',  # Кнопка "Разархивировать"
                       activebackground='grey', justify='center', state='disabled', command=decode)
 progress_bar_label = tk.Label(content, width=32, fg='black', bg='white', text='Прогресс:')
@@ -182,6 +200,7 @@ frame2.grid(column=0, row=4)
 progress_bar_label.grid(column=1, row=5)
 progress_bar.grid(column=1, row=7)
 archive.grid(column=3, row=5)
+pwd_checkbutton.grid(column=4, row=5)
 frame6.grid(column=0, row=6)
 dearchive.grid(column=3, row=7)
 frame8.grid(column=0, row=8)
