@@ -6,13 +6,12 @@ Created on Mon Mar 29 04:02:39 2021
 """
 
 import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
 import os
 import time as t
 import cchardet
+import hashlib
 
-file_path = ''
+file_path = ''   
 
 # Функция отвечающая за непосредственно архивирование выбранного файла
 def encode_lz78(s):
@@ -73,7 +72,7 @@ def decode_lz78(inp):
 def open_file():
     global file_path
 
-    file_path = filedialog.askopenfilename(initialdir='/', title='Выберите файл',
+    file_path = tk.filedialog.askopenfilename(initialdir='/', title='Выберите файл',
                                            filetypes=(('Text files', '*.txt'), ('LZ78 Archives', '*.lz78'),
                                                       ('All files', '*.*')))
     path_result = tk.StringVar(root)
@@ -90,6 +89,12 @@ def open_file():
 def encode():
     global file_path
 
+    new_file_path = tk.filedialog.asksaveasfilename(initialdir='/', title='Назовите файл')
+
+    is_pwd = tk.messagebox.askquestion(title='Пароль', message='Установить пароль?')
+    '''if is_pwd == 'yes':
+        pwd = tk.Entry(root,show='*').get()'''
+
     with open(file_path, 'rb') as f:
         encoding = cchardet.detect(f.read())['encoding']
 
@@ -98,7 +103,7 @@ def encode():
     ans1 = encode_lz78(s)
     f.close()
 
-    file_path = file_path[:-4] + '.lz78'
+    file_path = new_file_path[:-5] + '.lz78'
     f = open(file_path, 'w', encoding=encoding)
     for i in range(len(ans1)):
         f.write('(' + str(ans1[i][0]) + ',' + ans1[i][1] + ')')
@@ -114,6 +119,8 @@ def encode():
 # Функция, вызываемя при срабатывании кнопки "Разархивировать". Вызывает функцию decode_lz78, создает новый файл с прежним названием с расширением .txt.
 def decode():
     global file_path
+    
+    new_file_path = tk.filedialog.asksaveasfilename(initialdir='/', title='Назовите файл')
 
     with open(file_path, 'rb') as f:
         encoding = cchardet.detect(f.read())['encoding']
@@ -122,7 +129,7 @@ def decode():
     ans2 = decode_lz78(f.read())
     f.close()
 
-    file_path = file_path[:-5] + '.txt'
+    file_path = new_file_path[:-4] + '.txt'
     f = open(file_path, 'w', encoding=encoding)
     f.write(ans2)
     f.close()
@@ -134,9 +141,7 @@ def decode():
     dearchive['state'] = 'disabled'
     progress_bar['value'] = 0.0
 
-
-
-# Инициализация окна приложения
+# Инициализация главного окна приложения
 root = tk.Tk()
 root.title('Архиватор')
 root.resizable(0, 0)
@@ -161,7 +166,8 @@ archive = tk.Button(content, height=1, width=12, text='Архивировать'
 dearchive = tk.Button(content, height=1, width=12, text='Разархивировать', padx=10, pady=5, fg='black', bg='white',  # Кнопка "Разархивировать"
                       activebackground='grey', justify='center', state='disabled', command=decode)
 progress_bar_label = tk.Label(content, width=32, fg='black', bg='white', text='Прогресс:')
-progress_bar = ttk.Progressbar(content, length=500, mode='determinate')  # Прогрессбар
+password_entry = tk.Entry()
+progress_bar = tk.ttk.Progressbar(content, length=500, mode='determinate')  # Прогрессбар
 
 # Сетка, по которой размещаются объекты интерфейса
 content.grid(column=0, row=0)
